@@ -13,7 +13,7 @@ import {
 import { CotizacionesService } from '../services/cotizaciones.service.js';
 import { CalcularCotizacionDto } from '../dto/calcular-cotizacion.dto.js';
 import { CrearCotizacionDto } from '../dto/crear-cotizacion.dto.js';
-import { PaginationDto } from '../../../common/dto/pagination.dto.js';
+import { PaginationDto } from '@shared/backend';
 
 @Controller('cotizaciones')
 export class CotizacionesController {
