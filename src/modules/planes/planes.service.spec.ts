@@ -1,81 +1,66 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PlanesService } from './planes.service.js';
-import type { DrizzleDatabase } from '../../database/database.module.js';
+import type { PlanesRepository } from './repositories/planes.repository.js';
 
 describe('PlanesService', () => {
   let service: PlanesService;
-  let mockDb: any;
+  let mockRepository: Partial<PlanesRepository>;
 
   beforeEach(() => {
-    mockDb = {
-      select: vi.fn(),
+    mockRepository = {
+      obtenerActivos: vi.fn(),
+      obtenerPorCodigo: vi.fn(),
     };
-    service = new PlanesService(mockDb as DrizzleDatabase);
+    service = new PlanesService(mockRepository as PlanesRepository);
   });
 
-  it('debe devolver planes desde la base de datos si existen registros', async () => {
+  it('debe devolver planes desde el repositorio si existen registros', async () => {
     const planesMock = [
       {
         id: 1,
         codigo: 'basico',
         nombre: 'Plan Básico',
+        precioBase: '350.00',
         recargoPorcentaje: '20.00',
         descripcion: 'Cobertura esencial',
         activo: true,
       },
     ];
 
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue(planesMock),
-      }),
-    });
+    (mockRepository.obtenerActivos as any).mockResolvedValue(planesMock);
 
     const result = await service.obtenerTodos();
     expect(result).toEqual(planesMock);
+    expect(mockRepository.obtenerActivos).toHaveBeenCalledTimes(1);
   });
 
-  it('debe devolver un arreglo vacío si la base de datos no tiene planes', async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue([]),
-      }),
-    });
+  it('debe devolver un arreglo vacío si el repositorio no tiene planes', async () => {
+    (mockRepository.obtenerActivos as any).mockResolvedValue([]);
 
     const result = await service.obtenerTodos();
     expect(result).toEqual([]);
   });
 
-  it('debe devolver un plan por su código si existe en la base de datos', async () => {
+  it('debe devolver un plan por su código si existe en el repositorio', async () => {
     const planMock = {
       id: 1,
       codigo: 'basico',
       nombre: 'Plan Básico',
+      precioBase: '350.00',
       recargoPorcentaje: '20.00',
       descripcion: 'Cobertura esencial',
       activo: true,
     };
 
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([planMock]),
-        }),
-      }),
-    });
+    (mockRepository.obtenerPorCodigo as any).mockResolvedValue(planMock);
 
     const result = await service.obtenerPorCodigo('basico');
     expect(result).toEqual(planMock);
+    expect(mockRepository.obtenerPorCodigo).toHaveBeenCalledWith('basico');
   });
 
-  it('debe lanzar NotFoundException si el plan no existe en la base de datos', async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    });
+  it('debe lanzar NotFoundException si el plan no existe en el repositorio', async () => {
+    (mockRepository.obtenerPorCodigo as any).mockResolvedValue(null);
 
     await expect(service.obtenerPorCodigo('inexistente')).rejects.toThrow(
       'Plan con código "inexistente" no encontrado',

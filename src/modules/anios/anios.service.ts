@@ -1,25 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { eq, desc } from 'drizzle-orm';
-import {
-  DRIZZLE_DATABASE,
-  type DrizzleDatabase,
-} from '../../database/database.module.js';
-import * as schema from '../../database/schema/index.js';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { AniosRepository } from './repositories/anios.repository.js';
 import type { Anio } from '../../database/schema/anios.schema.js';
 
 @Injectable()
 export class AniosService {
-  constructor(
-    @Inject(DRIZZLE_DATABASE)
-    private readonly db: DrizzleDatabase,
-  ) {}
+  constructor(private readonly aniosRepository: AniosRepository) {}
 
   async obtenerTodos(): Promise<Anio[]> {
-    return this.db
-      .select()
-      .from(schema.anios)
-      .where(eq(schema.anios.activo, true))
-      .orderBy(desc(schema.anios.anio));
+    return this.aniosRepository.obtenerActivosOrdenados();
   }
 
   async obtenerPorAnio(anio: number): Promise<Anio> {
@@ -28,16 +16,11 @@ export class AniosService {
       throw new NotFoundException(`Año "${anio}" no válido`);
     }
 
-    const resultados = await this.db
-      .select()
-      .from(schema.anios)
-      .where(eq(schema.anios.anio, anioNumero))
-      .limit(1);
-
-    if (resultados[0]) {
-      return resultados[0];
+    const resultado = await this.aniosRepository.obtenerPorAnio(anioNumero);
+    if (!resultado) {
+      throw new NotFoundException(`Año "${anio}" no encontrado`);
     }
 
-    throw new NotFoundException(`Año "${anio}" no encontrado`);
+    return resultado;
   }
 }

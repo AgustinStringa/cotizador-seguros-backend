@@ -1,19 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AniosService } from './anios.service.js';
-import type { DrizzleDatabase } from '../../database/database.module.js';
+import type { AniosRepository } from './repositories/anios.repository.js';
 
 describe('AniosService', () => {
   let service: AniosService;
-  let mockDb: any;
+  let mockRepository: Partial<AniosRepository>;
 
   beforeEach(() => {
-    mockDb = {
-      select: vi.fn(),
+    mockRepository = {
+      obtenerActivosOrdenados: vi.fn(),
+      obtenerPorAnio: vi.fn(),
     };
-    service = new AniosService(mockDb as DrizzleDatabase);
+    service = new AniosService(mockRepository as AniosRepository);
   });
 
-  it('debe devolver años ordenados descendentemente desde la base de datos si existen registros', async () => {
+  it('debe devolver años ordenados descendentemente desde el repositorio si existen registros', async () => {
     const aniosMock = [
       {
         id: 1,
@@ -31,32 +32,21 @@ describe('AniosService', () => {
       },
     ];
 
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue(aniosMock),
-        }),
-      }),
-    });
+    (mockRepository.obtenerActivosOrdenados as any).mockResolvedValue(aniosMock);
 
     const result = await service.obtenerTodos();
     expect(result).toEqual(aniosMock);
+    expect(mockRepository.obtenerActivosOrdenados).toHaveBeenCalledTimes(1);
   });
 
-  it('debe devolver un arreglo vacío si la base de datos no tiene años', async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          orderBy: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    });
+  it('debe devolver un arreglo vacío si el repositorio no tiene años', async () => {
+    (mockRepository.obtenerActivosOrdenados as any).mockResolvedValue([]);
 
     const result = await service.obtenerTodos();
     expect(result).toEqual([]);
   });
 
-  it('debe devolver un año específico si existe en la base de datos', async () => {
+  it('debe devolver un año específico si existe en el repositorio', async () => {
     const anioMock = {
       id: 1,
       anio: 2024,
@@ -65,26 +55,15 @@ describe('AniosService', () => {
       activo: true,
     };
 
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([anioMock]),
-        }),
-      }),
-    });
+    (mockRepository.obtenerPorAnio as any).mockResolvedValue(anioMock);
 
     const result = await service.obtenerPorAnio(2024);
     expect(result).toEqual(anioMock);
+    expect(mockRepository.obtenerPorAnio).toHaveBeenCalledWith(2024);
   });
 
-  it('debe lanzar NotFoundException si el año no existe en la base de datos', async () => {
-    mockDb.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]),
-        }),
-      }),
-    });
+  it('debe lanzar NotFoundException si el año no existe en el repositorio', async () => {
+    (mockRepository.obtenerPorAnio as any).mockResolvedValue(null);
 
     await expect(service.obtenerPorAnio(1990)).rejects.toThrow(
       'Año "1990" no encontrado',
